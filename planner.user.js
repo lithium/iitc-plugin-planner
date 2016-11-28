@@ -2,7 +2,7 @@
 // @id             iitc-plugin-planner@nobody889
 // @name           IITC plugin: Planner
 // @category       Info
-// @version        0.2.0
+// @version        0.3.0
 // @namespace      https://github.com/lithium/iitc-plugin-planner
 // @updateURL      @@UPDATEURL@@
 // @downloadURL    @@DOWNLOADURL@@
@@ -31,8 +31,45 @@ if(typeof window.plugin !== 'function') window.plugin = function() {};
 
 window.plugin.planner = function() {};
 
+window.plugin.planner.loadPlanFromDrawtools = function(drawToolsItems) {
+
+  this.currentPlan = drawToolsItems;
+
+}
+
+var llstring = function(latlng) {
+  if (typeof latlng.lat != 'undefined' && typeof latlng.lng != 'undefined')
+  {
+      return latlng.lat + ',' + latlng.lng;
+  }
+}
+
+window.plugin.planner.handlePortalAdded = function(data) {
+  var portal = data.portal;
+  var guid = portal.options.guid;
+  var ll = llstring( portal._latlng );
+  var title = portal.options.data.title || guid;
+
+  console.log("portalAdded", data.portal, title)
+
+  this.portal_by_guid[guid] = portal
+  this.portal_by_ll[ll] = portal
+}
+
+
 window.plugin.planner.setup = function() {
 
+  this.portal_by_guid = {};
+  this.portal_by_ll = {};
+  this.currentPlan = [];
+
+  window.addHook('portalAdded', this.handlePortalAdded.bind(this));
+
+
+
+
+  addHook('pluginDrawTools', this.handleDrawTools.bind(this));
+  this.loadPlanFromDrawtools(JSON.parse(localStorage['plugin-draw-tools-layer']))
 
   $('#toolbox').append('<a tabindex="0" onclick="plugin.planner.showPlannerDialog();">Planner</a>');
 
@@ -66,46 +103,69 @@ window.plugin.planner.setup = function() {
       });
     
     android.addPane('plugin-planner', 'Planner', 'ic_planner');
-    addHook('paneChanged', this.onPaneChanged.bind(this));
+
+
+    addHook('paneChanged', this.handlePaneChanged.bind(this));
 
   }
 
+
 };
 
-window.plugin.planner.renderPlanViewer = function(plan) {
-  var container = document.createElement('div');
-  var currentPlan = window.plugin.planner.currentPlan;
+window.plugin.planner.getPortalFromLatlng = function(latlng) {
+    var ll = llstring(latlng)
+    var portal = this.portal_by_ll[ll]
+    return portal;
+}
+window.plugin.planner.portalTitle = function(portal) {
+    return portal ? 
+      (portal.options.data.title || llstring(portal._latlng)) : 
+      portal 
+      ;
+}
 
-  plan.steps.forEach(function(step) {
-    container.appendChild(this.renderStep(step));
+window.plugin.planner.renderPlanViewer = function(plan) {
+  var container = document.createElement('table');
+
+  var previousStep;
+  plan.forEach(function(step) {
+    container.appendChild(this.renderStep(step, previousStep));
+    if (step.type == "polyline") 
+      previousStep = step;
   }, this);
 
   return container;
 };
 
-window.plugin.planner.renderStep = function(step) {
-  var container = document.createElement('div');
+window.plugin.planner.renderStep = function(step, previous) {
+  var container = document.createElement('tr');
   container.className = 'plugin-planner-step';
 
-  var p = container.appendChild(document.createElement('p'));
-  p.className = 'plugin-planner-step-name';
-  p.innerHTML = step.name;
+  if (step.type == "polyline") {
+    var src_ll = llstring(step.latLngs[0]);
+    var src_portal = this.portal_by_ll[src_ll];
+    var src_td = container.appendChild(document.createElement('td'));
+
+    var previous_ll = previous ? llstring(previous.latLngs[0]) : undefined
+    if (!previous_ll || previous_ll != src_ll) {
+      src_td.innerHTML = this.portalTitle(src_portal) || src_ll;
+    }
+
+    var dest_ll = llstring(step.latLngs[1]);
+    var dest_portal = this.portal_by_ll[dest_ll];
+    var dest_td = container.appendChild(document.createElement('td'));
+    dest_td.innerHTML = this.portalTitle(dest_portal) || dest_ll;
+  }
+
 
   return container;
 };
 
 window.plugin.planner.showPlannerDialog = function() {
-  var plan = {
-    steps: [
-      {
-        name: "hello world"
-      }
-    ]
-
-  };
+  console.log("currentPlan", this.currentPlan)
 
   dialog({
-    html: this.renderPlanViewer(plan),
+    html: this.renderPlanViewer(this.currentPlan),
     height: 'auto',
     width: '400px',
     collapseCallback: this.collapseFix,
@@ -122,7 +182,7 @@ window.plugin.planner.collapseFix = function() {
   }
 }
 
-window.plugin.planner.onPaneChanged = function(pane) {
+window.plugin.planner.handlePaneChanged = function(pane) {
   if(pane == 'plugin-planner') {
     document.body.appendChild(this.mobilePane);
   } else if(this.mobilePane.parentNode) {
@@ -130,7 +190,9 @@ window.plugin.planner.onPaneChanged = function(pane) {
   }
 };
 
-
+window.plugin.planner.handleDrawTools = function(payload) {
+  console.log("handle draw tools", arguments)
+}
 
 
 // PLUGIN END //////////////////////////////////////////////////////////
