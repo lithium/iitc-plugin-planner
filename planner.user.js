@@ -7,14 +7,14 @@
 // @updateURL      @@UPDATEURL@@
 // @downloadURL    @@DOWNLOADURL@@
 // @description    [@@BUILDNAME@@-@@BUILDDATE@@] Build plans with drawtools
-// @include        https://www.ingress.com/intel*
-// @include        http://www.ingress.com/intel*
-// @match          https://www.ingress.com/intel*
-// @match          http://www.ingress.com/intel*
-// @include        https://www.ingress.com/mission/*
-// @include        http://www.ingress.com/mission/*
-// @match          https://www.ingress.com/mission/*
-// @match          http://www.ingress.com/mission/*
+// @include        https://*.ingress.com/intel*
+// @include        http://*.ingress.com/intel*
+// @match          https://*.ingress.com/intel*
+// @match          http://*.ingress.com/intel*
+// @include        https://*.ingress.com/mission/*
+// @include        http://*.ingress.com/mission/*
+// @match          https://*.ingress.com/mission/*
+// @match          http://*.ingress.com/mission/*
 // @grant          none
 // ==/UserScript==
 
@@ -37,6 +37,9 @@ window.plugin.planner.loadPlanFromDrawtools = function(drawToolsItems) {
 
 }
 
+
+
+
 var llstring = function(latlng) {
   if (typeof latlng.lat != 'undefined' && typeof latlng.lng != 'undefined')
   {
@@ -57,6 +60,9 @@ window.plugin.planner.handlePortalAdded = function(data) {
 }
 
 
+
+
+
 window.plugin.planner.setup = function() {
 
   this.portal_by_guid = {};
@@ -66,9 +72,9 @@ window.plugin.planner.setup = function() {
   window.addHook('portalAdded', this.handlePortalAdded.bind(this));
 
 
+  window.pluginCreateHook('pluginDrawTools'); // initialize hook if needed first
+  window.addHook('pluginDrawTools', this.handleDrawTools.bind(this));
 
-
-  addHook('pluginDrawTools', this.handleDrawTools.bind(this));
   this.loadPlanFromDrawtools(JSON.parse(localStorage['plugin-draw-tools-layer']))
 
   $('#toolbox').append('<a tabindex="0" onclick="plugin.planner.showPlannerDialog();">Planner</a>');
