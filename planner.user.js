@@ -305,7 +305,7 @@ window.plugin.planner.handleDrawTools = function(payload) {
     this.addDrawToolsLayer(payload.layer);
     this.rerender();
   }
-  else if (payload.event === "layersDeleted") {
+  else if (payload.event === "layersDeleted" || payload.event === "import") {
     // we dont get notified what was deleted, clobber everything for now
     this.loadPlanFromDrawtools(JSON.parse(localStorage['plugin-draw-tools-layer']))
     this.rerender();

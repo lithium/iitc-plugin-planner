@@ -1,0 +1,32 @@
+TODO
+
+ - step numbers
+ - step action type "portal, ada/jarvis, link etc"
+ - field counts
+ - key counts/requirements
+
+ - add implied steps for visiting portal to light it up/farm keys
+
+ - import/export plan to textfile
+
+ - move a selection of steps to a new location
+
+ - audit plan for problems
+ 	- crossed links
+ 	- blockers
+ 	- SBUL needed
+ 	- link amps needed?
+
+
+- fix clobbering on delete line and import
+
+
+Good Ideas
+==========
+ - portal list tab
+ - cache portalnames for steps in localstorage/textfile
+ - sort by north/south/east/west
+ - move all links from one portal to another (move anchor)
+
+
+
