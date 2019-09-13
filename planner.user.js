@@ -85,6 +85,10 @@ window.plugin.planner.handlePortalAdded = function(data) {
 
   this.portal_by_guid[guid] = portal
   this.portal_by_ll[ll] = portal
+
+  if (this.items.map(function(i) { return [llstring(i.src), llstring(i.dest)]}).flat().includes(ll)) {
+    this.rerender();
+  }
 }
 
 
@@ -212,6 +216,7 @@ window.plugin.planner.renderStep = function(step, stepIdx, previous) {
   if (!previous || llstring(previous.src) != llstring(step.src)) {
     src_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.src)) || llstring(step.src)
   }
+  src_td.onclick = function() { selectPortalByLatLng(step.src.lat, step.src.lng) }.bind(this);
 
   var actions_td = container.appendChild(document.createElement('td'));
   // action - up
@@ -245,6 +250,7 @@ window.plugin.planner.renderStep = function(step, stepIdx, previous) {
   // dest
   var dest_td = container.appendChild(document.createElement('td'));
   dest_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.dest)) || llstring(step.dest)
+  dest_td.onclick = function() { selectPortalByLatLng(step.dest.lat, step.dest.lng) }.bind(this);
 
   return container;
 };
