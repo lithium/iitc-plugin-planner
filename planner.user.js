@@ -29,11 +29,26 @@ if(typeof window.plugin !== 'function') window.plugin = function() {};
 // PLUGIN START ////////////////////////////////////////////////////////
 
 
+
+
 window.plugin.planner = function() {};
+
 
 window.plugin.planner.loadPlanFromDrawtools = function(drawToolsItems) {
 
-  this.currentPlan = drawToolsItems;
+  this.items = drawToolsItems.map(function(drawItem) {
+    if (drawItem.type === "polyline") {
+      return [{src: drawItem.latLngs[0], dest: drawItem.latLngs[1]}];
+    } else if (drawItem.type === "polygon") {
+      return [
+        {src: drawItem.latLngs[0], dest: drawItem.latLngs[1]},
+        {src: drawItem.latLngs[0], dest: drawItem.latLngs[2]},
+        {src: drawItem.latLngs[1], dest: drawItem.latLngs[2]}
+      ];
+    }
+  }).flat();
+
+  console.log("PLAN items", this.items);
 
 }
 
@@ -53,7 +68,7 @@ window.plugin.planner.handlePortalAdded = function(data) {
   var ll = llstring( portal._latlng );
   var title = portal.options.data.title || guid;
 
-  console.log("portalAdded", data.portal, title)
+  //console.log("portalAdded", data.portal, title)
 
   this.portal_by_guid[guid] = portal
   this.portal_by_ll[ll] = portal
@@ -67,7 +82,6 @@ window.plugin.planner.setup = function() {
 
   this.portal_by_guid = {};
   this.portal_by_ll = {};
-  this.currentPlan = [];
 
   window.addHook('portalAdded', this.handlePortalAdded.bind(this));
 
@@ -118,7 +132,7 @@ window.plugin.planner.setup = function() {
 
 };
 
-window.plugin.planner.getPortalFromLatlng = function(latlng) {
+window.plugin.planner.portalFromLatlng = function(latlng) {
     var ll = llstring(latlng)
     var portal = this.portal_by_ll[ll]
     return portal;
@@ -136,8 +150,7 @@ window.plugin.planner.renderPlanViewer = function(plan) {
   var previousStep;
   plan.forEach(function(step) {
     container.appendChild(this.renderStep(step, previousStep));
-    if (step.type == "polyline") 
-      previousStep = step;
+    previousStep = step;
   }, this);
 
   return container;
@@ -147,31 +160,36 @@ window.plugin.planner.renderStep = function(step, previous) {
   var container = document.createElement('tr');
   container.className = 'plugin-planner-step';
 
-  if (step.type == "polyline") {
-    var src_ll = llstring(step.latLngs[0]);
-    var src_portal = this.portal_by_ll[src_ll];
-    var src_td = container.appendChild(document.createElement('td'));
-
-    var previous_ll = previous ? llstring(previous.latLngs[0]) : undefined
-    if (!previous_ll || previous_ll != src_ll) {
-      src_td.innerHTML = this.portalTitle(src_portal) || src_ll;
-    }
-
-    var dest_ll = llstring(step.latLngs[1]);
-    var dest_portal = this.portal_by_ll[dest_ll];
-    var dest_td = container.appendChild(document.createElement('td'));
-    dest_td.innerHTML = this.portalTitle(dest_portal) || dest_ll;
+  var src_td = container.appendChild(document.createElement('td'));
+  if (!previous || llstring(previous.src) != llstring(step.src)) {
+    src_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.src)) || llstring(step.src)
   }
+
+  var actions_td = container.appendChild(document.createElement('td'));
+  var reverse_a = actions_td.appendChild(document.createElement('a'));
+  reverse_a.innerHTML = "<=>"
+  reverse_a.setAttribute('href', '#')
+  reverse_a.onclick = function() {
+    var tmp = step.src
+    step.src = step.dest
+    step.dest = tmp
+
+    src_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.src)) || llstring(step.src)
+    dest_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.dest)) || llstring(step.dest)
+  }.bind(this);
+
+  var dest_td = container.appendChild(document.createElement('td'));
+  dest_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.dest)) || llstring(step.dest)
+
 
 
   return container;
 };
 
 window.plugin.planner.showPlannerDialog = function() {
-  console.log("currentPlan", this.currentPlan)
 
   dialog({
-    html: this.renderPlanViewer(this.currentPlan),
+    html: this.renderPlanViewer(this.items),
     height: 'auto',
     width: '400px',
     collapseCallback: this.collapseFix,
