@@ -43,8 +43,21 @@ window.plugin.planner.PlanItem.prototype.uniqid = function() {
 
 window.plugin.planner.addLink = function(src, dest)  {
   var newItem = new plugin.planner.PlanItem(src, dest);
+  console.log("PLAN addLink", newItem.uniqid())
   if (this.items.findIndex(function(i) { return i.uniqid() == newItem.uniqid(); }) == -1) {
     this.items.push(newItem)
+  }
+}
+window.plugin.planner.addDrawToolsLayer = function(layer) {
+  var latlngs = layer.latLngs || layer._latlngs
+  console.log("PLAN addDrawToolsLayer", layer, latlngs)
+
+  if (latlngs.length == 2) {
+    this.addLink(latlngs[0], latlngs[1]);
+  } else if (latlngs.length == 3) {
+    this.addLink(latlngs[0], latlngs[1]);
+    this.addLink(latlngs[0], latlngs[2]);
+    this.addLink(latlngs[1], latlngs[2]);
   }
 }
 
@@ -52,13 +65,7 @@ window.plugin.planner.loadPlanFromDrawtools = function(drawToolsItems) {
 
   this.items = [];
   drawToolsItems.forEach(function(drawItem) {
-    if (drawItem.type === "polyline") {
-      this.addLink(drawItem.latLngs[0], drawItem.latLngs[1]);
-    } else if (drawItem.type === "polygon") {
-      this.addLink(drawItem.latLngs[0], drawItem.latLngs[1]);
-      this.addLink(drawItem.latLngs[0], drawItem.latLngs[2]);
-      this.addLink(drawItem.latLngs[1], drawItem.latLngs[2]);
-    }
+    this.addDrawToolsLayer(drawItem);
   }.bind(this));
 
   console.log("PLAN items", this.items);
@@ -81,7 +88,7 @@ window.plugin.planner.handlePortalAdded = function(data) {
   var ll = llstring( portal._latlng );
   var title = portal.options.data.title || guid;
 
-  //console.log("portalAdded", data.portal, title)
+  //console.log("PLAN portalAdded", data.portal, title)
 
   this.portal_by_guid[guid] = portal
   this.portal_by_ll[ll] = portal
@@ -168,6 +175,7 @@ window.plugin.planner.renderPlanViewer = function(plan) {
 };
 
 window.plugin.planner.rerender = function() {
+  if (!this.container) return;
   this.container.innerHTML = "";
 
   var sort_a = this.container.appendChild(document.createElement('a'));
@@ -284,7 +292,24 @@ window.plugin.planner.handlePaneChanged = function(pane) {
 };
 
 window.plugin.planner.handleDrawTools = function(payload) {
-  console.log("handle draw tools", arguments)
+  console.log("PLAN handleDrawTools", payload)
+  if (!payload) {
+    return;
+  }
+
+  if (payload.event === "clear") {
+    this.items = []
+    this.rerender();
+  } 
+  else if (payload.event === "layerCreated") {
+    this.addDrawToolsLayer(payload.layer);
+    this.rerender();
+  }
+  else if (payload.event === "layersDeleted") {
+    // we dont get notified what was deleted, clobber everything for now
+    this.loadPlanFromDrawtools(JSON.parse(localStorage['plugin-draw-tools-layer']))
+    this.rerender();
+  }
 }
 
 
