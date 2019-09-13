@@ -33,20 +33,33 @@ if(typeof window.plugin !== 'function') window.plugin = function() {};
 
 window.plugin.planner = function() {};
 
+window.plugin.planner.PlanItem = function(src, dest) {
+  this.src = src
+  this.dest = dest
+}
+window.plugin.planner.PlanItem.prototype.uniqid = function() {
+  return [llstring(this.src), llstring(this.dest)].sort().join("<=>");
+}
+
+window.plugin.planner.addLink = function(src, dest)  {
+  var newItem = new plugin.planner.PlanItem(src, dest);
+  if (this.items.findIndex(function(i) { return i.uniqid() == newItem.uniqid(); }) == -1) {
+    this.items.push(newItem)
+  }
+}
 
 window.plugin.planner.loadPlanFromDrawtools = function(drawToolsItems) {
 
-  this.items = drawToolsItems.map(function(drawItem) {
+  this.items = [];
+  drawToolsItems.forEach(function(drawItem) {
     if (drawItem.type === "polyline") {
-      return [{src: drawItem.latLngs[0], dest: drawItem.latLngs[1]}];
+      this.addLink(drawItem.latLngs[0], drawItem.latLngs[1]);
     } else if (drawItem.type === "polygon") {
-      return [
-        {src: drawItem.latLngs[0], dest: drawItem.latLngs[1]},
-        {src: drawItem.latLngs[0], dest: drawItem.latLngs[2]},
-        {src: drawItem.latLngs[1], dest: drawItem.latLngs[2]}
-      ];
+      this.addLink(drawItem.latLngs[0], drawItem.latLngs[1]);
+      this.addLink(drawItem.latLngs[0], drawItem.latLngs[2]);
+      this.addLink(drawItem.latLngs[1], drawItem.latLngs[2]);
     }
-  }).flat();
+  }.bind(this));
 
   console.log("PLAN items", this.items);
 
