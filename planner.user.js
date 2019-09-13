@@ -166,12 +166,22 @@ window.plugin.planner.renderPlanViewer = function(plan) {
 window.plugin.planner.rerender = function() {
   this.container.innerHTML = "";
 
+  var sort_a = this.container.appendChild(document.createElement('a'));
+  sort_a.innerHTML = "Sort by source"
+  sort_a.onclick = function() { this.sortItemsBySource(); this.rerender(); }.bind(this);
+
   var previousStep;
   this.items.forEach(function(step, idx) {
     this.container.appendChild(this.renderStep(step, idx, previousStep));
     previousStep = step;
   }, this);
 
+}
+
+window.plugin.planner.sortItemsBySource = function() {
+  this.items.sort(function(a, b) {
+    return llstring(a.src).localeCompare(llstring(b.src))
+  })
 }
 
 window.plugin.planner.moveStepUp = function(stepIdx) {
