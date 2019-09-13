@@ -158,43 +158,83 @@ window.plugin.planner.portalTitle = function(portal) {
 }
 
 window.plugin.planner.renderPlanViewer = function(plan) {
-  var container = document.createElement('table');
+  this.container = document.createElement('table');
+  this.rerender();
+  return this.container;
+};
+
+window.plugin.planner.rerender = function() {
+  this.container.innerHTML = "";
 
   var previousStep;
-  plan.forEach(function(step) {
-    container.appendChild(this.renderStep(step, previousStep));
+  this.items.forEach(function(step, idx) {
+    this.container.appendChild(this.renderStep(step, idx, previousStep));
     previousStep = step;
   }, this);
 
-  return container;
-};
+}
 
-window.plugin.planner.renderStep = function(step, previous) {
+window.plugin.planner.moveStepUp = function(stepIdx) {
+  if (stepIdx > 0) {
+    this.moveByIndex(this.items, stepIdx, -1);
+  }
+}
+window.plugin.planner.moveStepDown = function(stepIdx) {
+  if (stepIdx < this.items.length-1) {
+    this.moveByIndex(this.items, stepIdx, 1);
+  }
+}
+
+window.plugin.planner.moveByIndex = function(array, index, delta) {
+  //ref: https://gist.github.com/albertein/4496103
+  var newIndex = index + delta;
+  if (newIndex < 0 || newIndex == array.length) return; //Already at the top or bottom.
+  var indexes = [index, newIndex].sort((a, b) => a - b); //Sort the indixes (fixed)
+  array.splice(indexes[0], 2, array[indexes[1]], array[indexes[0]]); //Replace from lowest index, two elements, reverting the order
+}
+
+window.plugin.planner.renderStep = function(step, stepIdx, previous) {
   var container = document.createElement('tr');
   container.className = 'plugin-planner-step';
 
+  //src
   var src_td = container.appendChild(document.createElement('td'));
   if (!previous || llstring(previous.src) != llstring(step.src)) {
     src_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.src)) || llstring(step.src)
   }
 
   var actions_td = container.appendChild(document.createElement('td'));
+  // action - up
+  var move_up = actions_td.appendChild(document.createElement('a'));
+  move_up.innerHTML = "▲"
+  move_up.onclick = function() {
+    this.moveStepUp(stepIdx);
+    this.rerender();
+  }.bind(this);
+
+  // action - reverse
   var reverse_a = actions_td.appendChild(document.createElement('a'));
-  reverse_a.innerHTML = "<=>"
+  reverse_a.innerHTML = "⇄"
   reverse_a.setAttribute('href', '#')
   reverse_a.onclick = function() {
     var tmp = step.src
     step.src = step.dest
     step.dest = tmp
 
-    src_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.src)) || llstring(step.src)
-    dest_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.dest)) || llstring(step.dest)
+    this.rerender();
   }.bind(this);
 
+  // action - down
+  var move_down = actions_td.appendChild(document.createElement('a'));
+  move_down.innerHTML = "▼";
+  move_down.onclick = function() {
+    this.moveStepDown(stepIdx);
+    this.rerender();
+  }.bind(this);
+
+  // dest
   var dest_td = container.appendChild(document.createElement('td'));
   dest_td.innerHTML = this.portalTitle(this.portalFromLatlng(step.dest)) || llstring(step.dest)
-
-
 
   return container;
 };
