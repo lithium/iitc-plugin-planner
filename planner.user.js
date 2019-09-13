@@ -78,7 +78,7 @@ window.plugin.planner.loadPlanFromDrawtools = function(drawToolsItems) {
 var llstring = function(latlng) {
   if (typeof latlng.lat != 'undefined' && typeof latlng.lng != 'undefined')
   {
-      return latlng.lat + ',' + latlng.lng;
+      return latlng.lat.toFixed(6) + ',' + latlng.lng.toFixed(6);
   }
 }
 
