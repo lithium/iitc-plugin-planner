@@ -44,12 +44,17 @@ var llstring = function(latlng) {
       this.state should be considered immutable except via setState()
  */
 class UIComponent {
-  constructor() {
+  constructor(properties) {
+    this.props = Object.assign(this.constructor.defaultProps(), properties)
     this.state = this.constructor.initialState()
     this.mount();
   }
 
   static initialState() {
+    return {}
+  }
+
+  static defaultProps() {
     return {}
   }
 
@@ -108,15 +113,14 @@ class PlanItem {
  *    gui class for rendering a plan step in dialog
  */
 class PlannerDialogStep extends UIComponent {
-  constructor(item) {
-    super()
-    this.item = item
-  }
   render() {
     var ret = document.createElement('tr')
-    var td = ret.appendChild(document.createElement('td'));
-    if (this.item) {
-      td.innerHTML = this.item.srcName()
+    if (this.props.item) {
+      var td = ret.appendChild(document.createElement('td'));
+      td.innerHTML = this.props.item.srcName()
+
+      var dest = ret.appendChild(document.createElement('td'));
+      dest.innerHTML = this.props.item.destName()
     }
     return ret
   }
@@ -129,8 +133,8 @@ class PlannerDialogStep extends UIComponent {
  */
 
 class PlannerPlugin extends UIComponent {
-  constructor() {
-    super()
+  constructor(props) {
+    super(props)
 
     this.portal_by_guid = {};
     this.portal_by_ll = {};
@@ -264,7 +268,7 @@ class PlannerPlugin extends UIComponent {
     var ret = document.createElement('div')
 
     // console.log("PLAN render", this.state)
-    var steps = this.state.items.map(item => new PlannerDialogStep(item))
+    var steps = this.state.items.map(item => new PlannerDialogStep({item: item}))
     steps.forEach(step => ret.appendChild(step.render()))
 
     return ret
