@@ -45,8 +45,12 @@ var llstring = function(latlng) {
  */
 class UIComponent {
   constructor() {
-    this.state = {};
+    this.state = this.constructor.initialState()
     this.mount();
+  }
+
+  static initialState() {
+    return {}
   }
 
   mount(el) {
@@ -131,8 +135,6 @@ class PlannerPlugin extends UIComponent {
     this.portal_by_guid = {};
     this.portal_by_ll = {};
 
-    this.state.items = [];
-
     // iitc hooks
     window.addHook('portalAdded', this.handlePortalAdded.bind(this));
     window.pluginCreateHook('pluginDrawTools'); // initialize hook if needed first
@@ -145,6 +147,12 @@ class PlannerPlugin extends UIComponent {
 
     this.setupDesktop();
     // this.setupMobile();
+  }
+
+  static initialState() {
+    return {
+      'items': []
+    }
   }
 
   setupDesktop() {
@@ -256,7 +264,7 @@ class PlannerPlugin extends UIComponent {
     var ret = document.createElement('div')
 
     // console.log("PLAN render", this.state)
-    var steps = (this.state.items || []).map(item => new PlannerDialogStep(item))
+    var steps = this.state.items.map(item => new PlannerDialogStep(item))
     steps.forEach(step => ret.appendChild(step.render()))
 
     return ret
