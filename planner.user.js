@@ -105,6 +105,13 @@ class PlanItem {
   uniqid() {
     return [llstring(this.src), llstring(this.dest)].sort().join("<=>");
   }
+
+  get llsrc() {
+    return llstring(this.src)
+  }
+  get lldest() {
+    return llstring(this.dest)
+  }
 }
 
 
@@ -123,8 +130,14 @@ class PlannerDialogStep extends UIComponent {
         check.setAttribute('checked', 'checked')
       check.onclick = this.props.handleClick
 
+      if (this.props.stepNumber !== undefined) {
+        var no = td.appendChild(document.createElement('span'))
+        no.innerHTML = `${this.props.stepNumber+1}.`
+      }
+
       var src = ret.appendChild(document.createElement('td'));
-      src.innerHTML = this.props.item.srcName()
+      if (!this.props.previousItem || this.props.previousItem.llsrc != this.props.item.llsrc)
+        src.innerHTML = this.props.item.srcName()
 
       var dest = ret.appendChild(document.createElement('td'));
       dest.innerHTML = this.props.item.destName()
@@ -276,14 +289,20 @@ class PlannerPlugin extends UIComponent {
   }
 
 
+  sortBySource() {
+    this.setState({
+      items: this.state.items.concat().sort((a, b) => a.llsrc.localeCompare(b.llsrc))
+    })
+  }
+
   render() {
     var ret = document.createElement('div')
 
     var table = ret.appendChild(document.createElement('table'));
 
     var head = table.appendChild(document.createElement('tr'))
-    var check_td = head.appendChild(document.createElement('td'))
-    var check = check_td.appendChild(document.createElement('input'))
+    var check_th = head.appendChild(document.createElement('th'))
+    var check = check_th.appendChild(document.createElement('input'))
     check.setAttribute('type', 'checkbox')
     if (this.state.allSelected === true) 
       check.setAttribute('checked', 'checked')
@@ -299,9 +318,18 @@ class PlannerPlugin extends UIComponent {
       })
     }
 
+    var src_th = head.appendChild(document.createElement('th'))
+    src_th.innerHTML = "Source"
+    src_th.onclick = () => this.sortBySource()
+
+    var dest_th = head.appendChild(document.createElement('th'))
+    dest_th.innerHTML = "Destination"
+
     // console.log("PLAN render", this.state)
-    var steps = this.state.items.map(item => new PlannerDialogStep({
+    var steps = this.state.items.map((item, idx) => new PlannerDialogStep({
+      stepNumber: idx,
       item: item,
+      previousItem: idx > 0 ? this.state.items[idx-1] : undefined,
       handleClick: (evt) => { 
         var newSelected = Object.assign({}, this.state.selected)
         if (evt.target.checked) {
