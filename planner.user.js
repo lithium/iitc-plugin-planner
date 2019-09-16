@@ -36,6 +36,14 @@ var llstring = function(latlng) {
   }
 }
 
+var moveByIndex = function(array, index, delta) {
+  //ref: https://gist.github.com/albertein/4496103
+  var newIndex = index + delta;
+  if (newIndex < 0 || newIndex == array.length) return; //Already at the top or bottom.
+  var indexes = [index, newIndex].sort((a, b) => a - b); //Sort the indixes (fixed)
+  array.splice(indexes[0], 2, array[indexes[1]], array[indexes[0]]); //Replace from lowest index, two elements, reverting the order
+}
+
 
 /*
  * abstract class UIComponent
@@ -303,7 +311,19 @@ class PlannerPlugin extends UIComponent {
         }
       })
     })
-    
+  }
+
+  moveSelected(delta) {
+    var newItems = this.state.items.concat()
+    Object.getOwnPropertyNames(this.state.selected).forEach(id => {
+      var idx = newItems.findIndex(i => i.uniqid() == id)
+      if (idx != -1) 
+        moveByIndex(newItems, idx, delta)
+    })
+
+    this.setState({
+      items: newItems
+    })
   }
 
   get selectedCount() {
@@ -318,7 +338,14 @@ class PlannerPlugin extends UIComponent {
     var reverse_a = actions.appendChild(document.createElement('a'));
     reverse_a.innerHTML = "⇄"
     reverse_a.onclick = () => this.reverseSelected()
-    
+
+    var moveup_a = actions.appendChild(document.createElement('a'));
+    moveup_a.innerHTML = "▲"
+    moveup_a.onclick = () => this.moveSelected(-1)
+
+    var movedown_a = actions.appendChild(document.createElement('a'));
+    movedown_a.innerHTML = "▼"
+    movedown_a.onclick = () => this.moveSelected(1)
 
     var table = ret.appendChild(document.createElement('table'));
 
