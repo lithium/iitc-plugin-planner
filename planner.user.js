@@ -106,6 +106,15 @@ class PlanItem {
     return [llstring(this.src), llstring(this.dest)].sort().join("<=>");
   }
 
+  reverse() {
+    var tmp = this.dest
+    var tmpPortal = this.destPortal
+    this.dest = this.src
+    this.destPortal = this.srcPortal
+    this.src = tmp
+    this.srcPortal = tmPortal
+  }
+
   get llsrc() {
     return llstring(this.src)
   }
@@ -141,6 +150,11 @@ class PlannerDialogStep extends UIComponent {
 
       var dest = ret.appendChild(document.createElement('td'));
       dest.innerHTML = this.props.item.destName()
+
+      if (this.props.handlePortalClick) {
+        src.onclick = () => this.props.handlePortalClick(this.props.item.src, this.props.item.srcPortal)
+        dest.onclick = () => this.props.handlePortalClick(this.props.item.dest, this.props.item.destPortal)
+      }
     }
     return ret
   }
@@ -183,6 +197,23 @@ class PlannerPlugin extends UIComponent {
   setupDesktop() {
     var a = $('<a tabindex="0">Planner</a>').click(this.showPlannerDialog.bind(this));
     $('#toolbox').append(a);
+  }
+
+  showPlannerDialog() {
+    if (this.dialog) {
+      return;
+    }
+
+    this.dialog = dialog({
+      title: "Planner",
+      html: this.element,
+      height: 'auto',
+      width: '400px',
+      closeCallback: () => this.dialog = undefined
+    }).dialog('option', 'buttons', {
+      'OK': function() { $(this).dialog('close') },
+    });
+
   }
 
 
@@ -231,25 +262,6 @@ class PlannerPlugin extends UIComponent {
     }
   }
 
-
-  showPlannerDialog() {
-    if (this.dialog) {
-      return;
-    }
-
-    this.dialog = dialog({
-      title: "Planner",
-      html: this.element,
-      height: 'auto',
-      width: '400px',
-      closeCallback: () => this.dialog = undefined
-    }).dialog('option', 'buttons', {
-      'OK': function() { $(this).dialog('close') },
-    });
-
-  }
-
-
   loadPlanFromDrawtools(drawToolsItems) {
     drawToolsItems = drawToolsItems || JSON.parse(localStorage['plugin-draw-tools-layer'])
     drawToolsItems.forEach(i => this.addDrawToolsLayer(i))
@@ -275,28 +287,38 @@ class PlannerPlugin extends UIComponent {
     }
   }
 
-  portalFromLatlng(latlng) {
-    var ll = llstring(latlng)
-    var portal = this.portal_by_ll[ll]
-    return portal;
-  }
-
-  portalTitle(portal) {
-    return portal ? 
-      (portal.options.data.title || llstring(portal._latlng)) : 
-      portal 
-      ;
-  }
-
-
   sortBySource() {
     this.setState({
       items: this.state.items.concat().sort((a, b) => a.llsrc.localeCompare(b.llsrc))
     })
   }
 
+  reverseSelected() {
+    this.setState({
+      items: this.state.items.map(i => {
+        if (this.state.selected[i.uniqid()] === true) {
+          return new PlanItem(i.dest, i.src, i.destPortal, i.srcPortal)
+        } else {
+          return i
+        }
+      })
+    })
+    
+  }
+
+  get selectedCount() {
+    return Object.getOwnPropertyNames(this.state.selected).length
+  }
+
   render() {
     var ret = document.createElement('div')
+
+
+    var actions = ret.appendChild(document.createElement('div'));
+    var reverse_a = actions.appendChild(document.createElement('a'));
+    reverse_a.innerHTML = "⇄"
+    reverse_a.onclick = () => this.reverseSelected()
+    
 
     var table = ret.appendChild(document.createElement('table'));
 
@@ -304,7 +326,7 @@ class PlannerPlugin extends UIComponent {
     var check_th = head.appendChild(document.createElement('th'))
     var check = check_th.appendChild(document.createElement('input'))
     check.setAttribute('type', 'checkbox')
-    if (this.state.allSelected === true) 
+    if (this.selectedCount > 0)
       check.setAttribute('checked', 'checked')
     check.onclick = () => {
       var allids = this.state.items.map(i => i.uniqid())
@@ -313,7 +335,6 @@ class PlannerPlugin extends UIComponent {
         return acc
       }, {})
       this.setState({
-        'allSelected': check.checked,
         'selected': check.checked ? allselected : {},
       })
     }
@@ -339,9 +360,11 @@ class PlannerPlugin extends UIComponent {
         }
 
         this.setState({
-          allSelected: false, 
           selected: newSelected
         })
+      },
+      handlePortalClick: (latlng, portal) => {
+        selectPortalByLatLng(latlng.lat, latlng.lng)
       },
       checked: this.state.selected[item.uniqid()] === true,
     }))
