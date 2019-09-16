@@ -117,7 +117,14 @@ class PlannerDialogStep extends UIComponent {
     var ret = document.createElement('tr')
     if (this.props.item) {
       var td = ret.appendChild(document.createElement('td'));
-      td.innerHTML = this.props.item.srcName()
+      var check = td.appendChild(document.createElement('input'))
+      check.setAttribute('type', 'checkbox')
+      if (this.props.checked) 
+        check.setAttribute('checked', 'checked')
+      check.onclick = this.props.handleClick
+
+      var src = ret.appendChild(document.createElement('td'));
+      src.innerHTML = this.props.item.srcName()
 
       var dest = ret.appendChild(document.createElement('td'));
       dest.innerHTML = this.props.item.destName()
@@ -155,7 +162,8 @@ class PlannerPlugin extends UIComponent {
 
   static initialState() {
     return {
-      'items': []
+      'items': [],
+      'selected': {},
     }
   }
 
@@ -212,12 +220,16 @@ class PlannerPlugin extends UIComponent {
 
 
   showPlannerDialog() {
+    if (this.dialog) {
+      return;
+    }
 
-    dialog({
+    this.dialog = dialog({
       title: "Planner",
       html: this.element,
       height: 'auto',
       width: '400px',
+      closeCallback: () => this.dialog = undefined
     }).dialog('option', 'buttons', {
       'OK': function() { $(this).dialog('close') },
     });
@@ -267,9 +279,45 @@ class PlannerPlugin extends UIComponent {
   render() {
     var ret = document.createElement('div')
 
+    var table = ret.appendChild(document.createElement('table'));
+
+    var head = table.appendChild(document.createElement('tr'))
+    var check_td = head.appendChild(document.createElement('td'))
+    var check = check_td.appendChild(document.createElement('input'))
+    check.setAttribute('type', 'checkbox')
+    if (this.state.allSelected === true) 
+      check.setAttribute('checked', 'checked')
+    check.onclick = () => {
+      var allids = this.state.items.map(i => i.uniqid())
+      var allselected = allids.reduce((acc,cur) => {
+        acc[cur] = true
+        return acc
+      }, {})
+      this.setState({
+        'allSelected': check.checked,
+        'selected': check.checked ? allselected : {},
+      })
+    }
+
     // console.log("PLAN render", this.state)
-    var steps = this.state.items.map(item => new PlannerDialogStep({item: item}))
-    steps.forEach(step => ret.appendChild(step.render()))
+    var steps = this.state.items.map(item => new PlannerDialogStep({
+      item: item,
+      handleClick: (evt) => { 
+        var newSelected = Object.assign({}, this.state.selected)
+        if (evt.target.checked) {
+          newSelected[item.uniqid()] = true;
+        } else {
+          delete newSelected[item.uniqid()];
+        }
+
+        this.setState({
+          allSelected: false, 
+          selected: newSelected
+        })
+      },
+      checked: this.state.selected[item.uniqid()] === true,
+    }))
+    steps.forEach(step => table.appendChild(step.render()))
 
     return ret
   }
