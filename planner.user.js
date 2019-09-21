@@ -90,11 +90,12 @@ class UIComponent {
  */
 
 class PlanItem {
-  constructor(src, dest, srcPortal, destPortal) {
-    this.src = src
-    this.dest = dest
-    this.srcPortal = srcPortal
-    this.destPortal = destPortal
+  constructor(options) {
+    this.src = options.src
+    this.dest = options.dest
+    this.srcPortal = options.srcPortal
+    this.destPortal = options.destPortal
+    this.srcLayerId = options.srcLayerId
   }
 
   srcName() {
@@ -265,30 +266,46 @@ class PlannerPlugin extends UIComponent {
     else if (payload.event === "layerCreated") {
       this.addDrawToolsLayer(payload.layer);
     }
-    else if (payload.event === "layersDeleted" || payload.event === "import") {
+    else if (payload.event === "layersDeleted") {
+
+      var layers = window.plugin.drawTools.drawnItems.getLayers()
+      var validIds = layers.map(l => l._leaflet_id)
+      var newItems = this.state.items.filter(i => validIds.indexOf(i.srcLayerId) != -1)
+      this.setState({
+        'items': newItems
+      })
+
+    }
+    else if (payload.event === "import") {
       // TODO: we dont get notified what was deleted/imported
     }
   }
 
-  loadPlanFromDrawtools(drawToolsItems) {
-    drawToolsItems = drawToolsItems || JSON.parse(localStorage['plugin-draw-tools-layer'])
-    drawToolsItems.forEach(i => this.addDrawToolsLayer(i))
+  loadPlanFromDrawtools() {
+    var layers = window.plugin.drawTools.drawnItems.getLayers()
+    layers.forEach(l => this.addDrawToolsLayer(l))
   }
 
   addDrawToolsLayer(layer) {
-    var latlngs = layer.latLngs || layer._latlngs
+    var latlngs = layer.getLatLngs()
 
     if (latlngs.length == 2) {
-      this.addLink(latlngs[0], latlngs[1]);
+      this.addLink(latlngs[0], latlngs[1], layer);
     } else if (latlngs.length == 3) {
-      this.addLink(latlngs[0], latlngs[1]);
-      this.addLink(latlngs[0], latlngs[2]);
-      this.addLink(latlngs[1], latlngs[2]);
+      this.addLink(latlngs[0], latlngs[1], layer);
+      this.addLink(latlngs[0], latlngs[2], layer);
+      this.addLink(latlngs[1], latlngs[2], layer);
     }
   }
 
-  addLink (src, dest)  {
-    var newItem = new PlanItem(src, dest, this.portal_by_ll[llstring(src)], this.portal_by_ll[llstring(dest)]);
+  addLink (src, dest, srcLayer)  {
+    var newItem = new PlanItem({
+      src: src, 
+      dest: dest, 
+      srcPortal: this.portal_by_ll[llstring(src)], 
+      destPortal: this.portal_by_ll[llstring(dest)],
+      srcLayerId: srcLayer._leaflet_id
+    });
     // console.log("PLAN addLink", newItem.uniqid())
     if (this.state.items.findIndex(i => i.uniqid() == newItem.uniqid()) == -1) {
       this.setState({'items': this.state.items.concat([newItem])})
@@ -305,7 +322,13 @@ class PlannerPlugin extends UIComponent {
     this.setState({
       items: this.state.items.map(i => {
         if (this.state.selected[i.uniqid()] === true) {
-          return new PlanItem(i.dest, i.src, i.destPortal, i.srcPortal)
+          return new PlanItem({
+            src: i.dest, 
+            dest: i.src, 
+            srcPortal: i.destPortal, 
+            destPortal: i.srcPortal,
+            srcLayerId: i.srcLayerId
+          })
         } else {
           return i
         }
