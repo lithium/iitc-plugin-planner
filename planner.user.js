@@ -267,7 +267,6 @@ class PlannerPlugin extends UIComponent {
       this.addDrawToolsLayer(payload.layer);
     }
     else if (payload.event === "layersDeleted") {
-
       var layers = window.plugin.drawTools.drawnItems.getLayers()
       var validIds = layers.map(l => l._leaflet_id)
       var newItems = this.state.items.filter(i => validIds.indexOf(i.srcLayerId) != -1)
@@ -277,7 +276,12 @@ class PlannerPlugin extends UIComponent {
 
     }
     else if (payload.event === "import") {
-      // TODO: we dont get notified what was deleted/imported
+      this.setState({'items': []})
+      this.loadPlanFromDrawtools()
+    }
+    else if (payload.event === "layersSnappedToPortals") {
+    }
+    else if (payload.event === "layersEdited") {
     }
   }
 
