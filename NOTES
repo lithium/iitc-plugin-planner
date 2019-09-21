@@ -1,15 +1,13 @@
 TODO
 
- - step numbers
  - step action type "portal, ada/jarvis, link etc"
  - field counts
  - key counts/requirements
 
  - add implied steps for visiting portal to light it up/farm keys
+ - indicate if link already exists
 
  - import/export plan to textfile
-
- - move a selection of steps to a new location
 
  - audit plan for problems
  	- crossed links
@@ -17,8 +15,6 @@ TODO
  	- SBUL needed
  	- link amps needed?
 
-
-- fix clobbering on delete line and import
 
 
 Good Ideas
