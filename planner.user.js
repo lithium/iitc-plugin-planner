@@ -130,6 +130,10 @@ class PlanItem {
   get lldest() {
     return llstring(this.dest)
   }
+
+  get srcLayer() {
+    return plugin.drawTools.drawnItems.getLayer(this.srcLayerId)
+  }
 }
 
 
@@ -279,9 +283,7 @@ class PlannerPlugin extends UIComponent {
       this.setState({'items': []})
       this.loadPlanFromDrawtools()
     }
-    else if (payload.event === "layersSnappedToPortals") {
-    }
-    else if (payload.event === "layersEdited") {
+    else if (payload.event === "layersSnappedToPortals" || payload.event === "layersEdited") {
     }
   }
 
@@ -383,14 +385,7 @@ class PlannerPlugin extends UIComponent {
     if (this.selectedCount > 0)
       check.setAttribute('checked', 'checked')
     check.onclick = () => {
-      var allids = this.state.items.map(i => i.uniqid())
-      var allselected = allids.reduce((acc,cur) => {
-        acc[cur] = true
-        return acc
-      }, {})
-      this.setState({
-        'selected': check.checked ? allselected : {},
-      })
+      this.selectItems(0, this.state.items.length, check.checked)
     }
 
     var src_th = head.appendChild(document.createElement('th'))
@@ -400,22 +395,19 @@ class PlannerPlugin extends UIComponent {
     var dest_th = head.appendChild(document.createElement('th'))
     dest_th.innerHTML = "Destination"
 
-    // console.log("PLAN render", this.state)
     var steps = this.state.items.map((item, idx) => new PlannerDialogStep({
       stepNumber: idx,
       item: item,
       previousItem: idx > 0 ? this.state.items[idx-1] : undefined,
       handleClick: (evt) => { 
-        var newSelected = Object.assign({}, this.state.selected)
-        if (evt.target.checked) {
-          newSelected[item.uniqid()] = true;
+        if (evt.shiftKey && this.lastClickedIdx !== undefined) {
+          var start = Math.min(this.lastClickedIdx, idx)
+          var end = Math.max(this.lastClickedIdx, idx)
+          this.selectItems(start, end-start+1, evt.target.checked)
         } else {
-          delete newSelected[item.uniqid()];
+          this.selectItems(idx, 1, evt.target.checked)
         }
-
-        this.setState({
-          selected: newSelected
-        })
+        this.lastClickedIdx = idx;
       },
       handlePortalClick: (latlng, portal) => {
         selectPortalByLatLng(latlng.lat, latlng.lng)
@@ -427,6 +419,17 @@ class PlannerPlugin extends UIComponent {
     return ret
   }
 
+  selectItems(start, count, checked) {
+    var selectIds = this.state.items.slice(start, start+count).map(i => i.uniqid())
+    var newSelected = Object.assign({}, this.state.selected)
+    selectIds.forEach(id => {
+      if (checked) 
+        newSelected[id] = true
+      else
+        delete newSelected[id]
+    }) 
+    this.setState({'selected': newSelected})
+  }
 
 }
 
