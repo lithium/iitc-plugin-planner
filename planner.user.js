@@ -216,17 +216,23 @@ class PlannerPlugin extends UIComponent {
     $('#toolbox').append(a);
   }
 
+  handleCloseDialog() {
+    this.dialog = undefined
+  }
+
   showPlannerDialog() {
     if (this.dialog) {
       return;
     }
+
+    this.setState({})
 
     this.dialog = dialog({
       title: "Planner",
       html: this.element,
       height: 'auto',
       width: '400px',
-      closeCallback: () => this.dialog = undefined
+      closeCallback: () => this.handleCloseDialog()
     }).dialog('option', 'buttons', {
       'OK': function() { $(this).dialog('close') },
     });
@@ -395,13 +401,17 @@ class PlannerPlugin extends UIComponent {
       acc[key] = (acc[key] || 0) + 1
       return acc
     }, {})
-    console.log("PLAN portals", portals, keyCounts)
 
-    var table = $('<table><tr><th>Portal</th><th>Keys Needed</th></tr></table>')
+    var table = $('<table><tr><th>Portal</th><th>Required</th><th>Have</th><th>Need</th></tr></table>')
     destPortals.filter(distinct).sort((a,b) => a.options.data.title.localeCompare(b.options.data.title)).forEach(portal => {
       var row = $('<tr></tr>')
+      var req = keyCounts[portal.options.guid]
+      var have = plugin.keys ? plugin.keys.keys[portal.options.guid] : undefined || 0
+      var need = req - have
       row.append(`<td>${portal.options.data.title}</td>`)
-      row.append(`<td>${keyCounts[portal.options.guid]}</td>`)
+      row.append(`<td>${req}</td>`)
+      row.append(`<td>${have}</td>`)
+      row.append(`<td>${need}</td>`)
 
       table.append(row)
     })
