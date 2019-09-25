@@ -44,7 +44,10 @@ var moveByIndex = function(array, index, delta) {
   array.splice(indexes[0], 2, array[indexes[1]], array[indexes[0]]); //Replace from lowest index, two elements, reverting the order
 }
 
-
+var distinct = function(value, index, self) {
+  return self.indexOf(value) === index;
+}
+var defined = function(x) { return x !== undefined }
 /*
  * abstract class UIComponent
       react-esque render() and setState()
@@ -204,6 +207,7 @@ class PlannerPlugin extends UIComponent {
     return {
       'items': [],
       'selected': {},
+      'activeTab': 'steps',
     }
   }
 
@@ -360,6 +364,51 @@ class PlannerPlugin extends UIComponent {
   }
 
   render() {
+    var ret = document.createElement('div')
+
+    ret.appendChild(this.renderTabs());
+
+    if (this.state.activeTab == 'steps') {
+      ret.appendChild(this.renderStepsTab())
+    } 
+    else if (this.state.activeTab == 'portals') {
+      ret.appendChild(this.renderPortalsTab())
+    }
+
+
+    return ret
+  }
+  renderTabs() {
+    var ret = document.createElement('div')
+    var stepsBtn = $('<button>Steps</button>').click(() => this.setState({'activeTab': 'steps'}))
+    var portalsBtn = $('<button>Portals</button>').click(() => this.setState({'activeTab': 'portals'}))
+    ret.appendChild(stepsBtn[0])
+    ret.appendChild(portalsBtn[0])
+    return ret
+  }
+  renderPortalsTab() {
+    var ret = document.createElement('div')
+
+    var destPortals = this.state.items.map(item => item.destPortal).filter(defined)
+    var keyCounts = destPortals.reduce((acc, val) => {
+      var key = val.options.guid
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {})
+    console.log("PLAN portals", portals, keyCounts)
+
+    var table = $('<table><tr><th>Portal</th><th>Keys Needed</th></tr></table>')
+    destPortals.filter(distinct).sort((a,b) => a.options.data.title.localeCompare(b.options.data.title)).forEach(portal => {
+      var row = $('<tr></tr>')
+      row.append(`<td>${portal.options.data.title}</td>`)
+      row.append(`<td>${keyCounts[portal.options.guid]}</td>`)
+
+      table.append(row)
+    })
+      ret.appendChild(table[0])
+    return ret
+  }
+  renderStepsTab() {
     var ret = document.createElement('div')
 
 
